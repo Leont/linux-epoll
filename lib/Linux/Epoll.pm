@@ -2,24 +2,12 @@ package Linux::Epoll;
 
 use strict;
 use warnings FATAL => 'all';
-use Carp qw/croak/;
-use Const::Fast;
 
 use parent 'IO::Handle';
 
 our $VERSION = '0.001';
 
 XSLoader::load(__PACKAGE__, $VERSION);
-
-const my $fail_fd => -1;
-
-sub create {
-	my $class = shift;
-	croak if ((my $fd = _create()) == $fail_fd);
-	open my $self, '+<&', $fd or croak "Couldn't fdopen: $!";
-	bless $self, $class;
-	return $self;
-}
 
 1;    # End of Linux::Epoll
 
@@ -35,15 +23,15 @@ Version 0.001
 
 =head1 SYNOPSIS
 
-    use Linux::Epoll;
+ use Linux::Epoll;
 
-    my $foo = Linux::Epoll->create();
-	$foo->add($fh, 'in', sub { do_something($fh) });
-	$foo->wait;
+ my $foo = Linux::Epoll->new();
+ $foo->add($fh, 'in', sub { do_something($fh) });
+ $foo->wait;
 
 =head1 DESCRIPTION
 
-Epoll is a multiplexing mechanism that scales up O(1) with number of watched files. Linux::Epoll is a callback style epoll module, unlike other epoll modules availible on CPAN.
+Epoll is a multiplexing mechanism that scales up O(1) with number of watched files. Linux::Epoll is a callback style epoll module, unlike other epoll modules available on CPAN.
 
 =head1 METHODS
 

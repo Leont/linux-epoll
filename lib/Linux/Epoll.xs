@@ -85,16 +85,36 @@ CV* S_extract_cv(pTHX_ SV* sv) {
 
 #define undef &PL_sv_undef
 
+static SV* S_io_fdopen(pTHX_ int fd) {
+	SV* ret;
+	PerlIO* pio = PerlIO_fdopen(fd, "r");
+	GV* gv = newGVgen("Symbol");
+	IO* io = GvIOn(gv);
+	IoTYPE(io) = '<';
+	IoIFP(io) = pio;
+	IoOFP(io) = pio;
+	ret = newRV_noinc((SV*)gv);
+	return ret;
+}
+#define io_fdopen(fd) S_io_fdopen(aTHX_ fd)
+
 MODULE = Linux::Epoll				PACKAGE = Linux::Epoll
 
-int
-_create()
-	CODE:
+SV*
+create(const char* package)
+	PREINIT:
+		int fd;
+		MAGIC* mg;
+	CODE: 
 #ifdef EPOLL_CLOEXEC
-		RETVAL = epoll_create1(EPOLL_CLOEXEC);
+		fd = epoll_create1(EPOLL_CLOEXEC);
 #else
-		RETVAL = epoll_create(0);
+		fd = epoll_create(0);
 #endif
+		if (fd < 0) 
+			die_sys("Couldn't open epollfd: %s");
+		RETVAL = io_fdopen(fd);
+		sv_bless(RETVAL, gv_stashpv(package, TRUE));
 	OUTPUT:
 		RETVAL
 

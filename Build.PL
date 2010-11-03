@@ -24,7 +24,6 @@ my $builder = Module::Build->new(
 	requires	        => {
 		perl            => 5.006,
 		parent          => 0,
-		'Const::Fast'   => 0,
 		'Sub::Exporter' => 0,
 	},
 	add_to_cleanup      => [ 'Linux-Epoll-*' ],
