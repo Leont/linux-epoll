@@ -9,5 +9,6 @@ MANIFEST
 META.yml
 README
 t/00-load.t
+t/10-basics.t
 t/pod-coverage.t
 t/pod.t
