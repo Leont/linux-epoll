@@ -5,7 +5,7 @@
 #include "perl.h"
 #include "XSUB.h"
 
-#define get_fd(self) PerlIO_fileno(IoOFP(sv_2io(SvRV(self))));
+#define get_fd(self) PerlIO_fileno(IoIFP(sv_2io(SvRV(self))));
 
 static void get_sys_error(char* buffer, size_t buffer_size) {
 #ifdef _GNU_SOURCE
@@ -56,6 +56,25 @@ static uint32_t S_get_eventid(pTHX_ const char* event_name) {
 }
 #define get_eventid(name) S_get_eventid(aTHX_ name)
 
+static uint32_t S_get_eventids(pTHX_ SV* names) {
+	if (SvROK(names)) {
+		AV* array = (AV*)SvRV(names);
+		uint32_t ret = 0;
+		int i, len;
+		if (!SvTYPE(array) == SVt_PVAV)
+			Perl_croak(aTHX_ "event names must be string or arrayref");
+		len = av_len(array) + 1;
+		for (i = 0; i < len; ++i) {
+			SV** elem = av_fetch(array, i, FALSE);
+			ret |= get_eventid(SvPV_nolen(*elem));
+		}
+		return ret;
+	}
+	else 
+		return get_eventid(SvPV_nolen(names));
+}
+#define get_eventids(name) S_get_eventids(aTHX_ name)
+
 static const char* S_get_event_name(pTHX_ uint32_t event_bit) {
 	size_t i;
 	for (i = 0; i < sizeof events / sizeof *events; ++i)
@@ -65,23 +84,76 @@ static const char* S_get_event_name(pTHX_ uint32_t event_bit) {
 }
 #define get_event_name(event_bit) S_get_event_name(aTHX_ event_bit)
 
-static SV* S_get_event_names(pTHX_ uint32_t events) {
-	if (__builtin_popcount(events))
-		return newSVpv(get_event_name(events), 0);
-	else {
-		return &PL_sv_undef; /* Not yet implemented */
+static SV* S_get_event_hash(pTHX_ uint32_t events) {
+	int shift;
+	HV* ret = newHV();
+	for (shift = 0; shift < 32; ++shift) {
+		if (events & (1 << shift)) {
+			const char* tmp = get_event_name(1 << shift);
+			hv_store(ret, tmp, 0, newSViv(1), 0);
+		}
 	}
+	return newRV_noinc((SV*)ret);
 }
-#define get_event_names(event_bits) S_get_event_names(aTHX_ event_bits)
+#define get_event_hash(event_bits) S_get_event_hash(aTHX_ event_bits)
 
-CV* S_extract_cv(pTHX_ SV* sv) {
+static CV* S_extract_cv(pTHX_ SV* sv) {
 	HV* stash;
 	GV* gv;
 	CV* ret = sv_2cv(sv, &stash, &gv, FALSE);
 	if (!ret)
 		Perl_croak(aTHX_ "Couldn't convert callback parameter to a CV");
+	return ret;
 }
 #define extract_cv(sv) S_extract_cv(aTHX_ sv)
+
+static MAGIC* S_mg_find_ext(pTHX_ SV* sv, U16 private) {
+	PERL_UNUSED_CONTEXT;
+	if (sv && SvMAGICAL(sv)) {
+		MAGIC* mg;
+		for (mg = SvMAGIC(sv); mg; mg = mg->mg_moremagic)
+			if (mg->mg_type == PERL_MAGIC_ext && mg->mg_private == private)
+				return mg;
+	}
+	return NULL;
+}
+#define mg_find_ext(sv, private) S_mg_find_ext(aTHX_ sv, private)
+
+static const U16 magic_number = 0x4c45;
+
+static MAGIC* S_get_backrefs(pTHX_ SV* sv) {
+	MAGIC* mg = mg_find_ext(sv, magic_number);
+	if (!mg) {
+		mg = sv_magicext(sv, sv_2mortal((SV*)newHV()), PERL_MAGIC_ext, NULL, NULL, 0);
+		mg->mg_private = magic_number;
+	}
+	return mg;
+}
+#define get_backrefs(sv) S_get_backrefs(aTHX_ sv)
+
+static void S_set_backref(pTHX_ SV* sv, int epollfd, CV* callback) {
+	MAGIC* mg = get_backrefs(sv);
+	SV* key = sv_2mortal(newSViv(epollfd));
+	SvREFCNT_inc((SV*)callback);
+	hv_store_ent((HV*)mg->mg_obj, key, (SV*)callback, 0);
+}
+#define set_backref(sv, efd, cb) S_set_backref(aTHX_ sv, efd, cb)
+
+static void S_del_backref(pTHX_ SV* sv, int epollfd) {
+	MAGIC* mg = get_backrefs(sv);
+	SV* key = sv_2mortal(newSViv(epollfd));
+	hv_delete_ent((HV*)mg->mg_obj, key, G_DISCARD, 0);
+}
+#define del_backref(sv, efd) S_del_backref(aTHX_ sv, efd)
+
+static void S_set_callback(pTHX_ SV* epoll, SV* fh, CV* cv) {
+	SV* ref = newSVsv(fh);
+	MAGIC* mg = mg_find_ext(SvRV(epoll), magic_number + 1);
+	AV* data = newAV();
+	sv_rvweaken(ref);
+	hv_store_ent((HV*)mg->mg_obj, fh, ref, 0);
+}
+#define set_callback(epoll, fh, cb) S_set_callback(aTHX_ epoll, fh, cb)
 
 #define undef &PL_sv_undef
 
@@ -101,7 +173,7 @@ static SV* S_io_fdopen(pTHX_ int fd) {
 MODULE = Linux::Epoll				PACKAGE = Linux::Epoll
 
 SV*
-create(const char* package)
+new(const char* package)
 	PREINIT:
 		int fd;
 		MAGIC* mg;
@@ -128,13 +200,16 @@ add(self, fh, events, callback)
 		int efd, ofd;
 		struct epoll_event event;
 		CV* real_callback;
+		MAGIC* mg;
 	CODE:
 		efd = get_fd(self);
 		ofd = get_fd(fh);
-		event.events = get_events(events);
-		event.data.ptr = extract_cv(callback);
+		event.events = get_eventids(events);
+		real_callback = extract_cv(callback);
+		event.data.ptr = real_callback;
 		if (epoll_ctl(efd, EPOLL_CTL_ADD, ofd, &event) == -1) 
 			die_sys("Couldn't add filehandle from epoll set: %s");
+		set_backref(fh, efd, real_callback);
 
 void
 modify(self, fh, events, callback)
@@ -145,13 +220,16 @@ modify(self, fh, events, callback)
 	PREINIT:
 		int efd, ofd;
 		struct epoll_event event;
+		CV* real_callback;
 	CODE:
 		efd = get_fd(self);
 		ofd = get_fd(fh);
-		event.events = get_events(events);
-		event.data.ptr = extract_cv(callback);
+		event.events = get_eventids(events);
+		real_callback = extract_cv(callback);
+		event.data.ptr = real_callback;
 		if (epoll_ctl(efd, EPOLL_CTL_MOD, ofd, &event) == -1) 
 			die_sys("Couldn't modify filehandle from epoll set: %s");
+		set_backref(fh, efd, real_callback);
 
 void
 delete(self, fh)
@@ -166,7 +244,7 @@ delete(self, fh)
 			die_sys("Couldn't delete filehandle from epoll set: %s");
 
 int
-wait(self, maxevents, timeout = undef, sigset = undef)
+wait(self, maxevents = 1, timeout = undef, sigset = undef)
 	SV* self;
 	size_t maxevents;
 	SV* timeout;
@@ -190,9 +268,27 @@ wait(self, maxevents, timeout = undef, sigset = undef)
 		for (i = 0; i < RETVAL; i++) {
 			CV* callback = (CV*) events[i].data.ptr;
 			PUSHMARK(SP);
-			PUSHs(get_event_names(events[i].events));
+			mXPUSHu(events[i].events);
 			PUTBACK;
 			call_sv((SV*)callback, G_VOID | G_DISCARD);
 		}
+	OUTPUT:
+		RETVAL
+
+MODULE = Linux::Epoll				PACKAGE = Linux::Epoll::Util
+
+SV*
+event_bits_to_hash(bits)
+	UV bits;
+	CODE:
+		RETVAL = get_event_hash(bits);
+	OUTPUT:
+		RETVAL
+
+UV
+event_names_to_bits(names)
+	SV* names;
+	CODE:
+		RETVAL = get_eventids(names);
 	OUTPUT:
 		RETVAL

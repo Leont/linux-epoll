@@ -1,21 +1,21 @@
-package Linux::Epoll;
+package Linux::Epoll::Util;
 
 use strict;
 use warnings FATAL => 'all';
 
-use parent 'IO::Handle';
-
 our $VERSION = '0.001';
 
-XSLoader::load(__PACKAGE__, $VERSION);
+require Linux::Epoll;
 
-1;    # End of Linux::Epoll
+use Sub::Exporter -setup => { exports => [qw/event_names_to_bits event_bits_to_hash/] };
+
+1;    # End of Linux::Epoll::Util
 
 __END__
 
 =head1 NAME
 
-Linux::Epoll - O(1) multiplexing for Linux
+Linux::Epoll::Util - Utility functions for Linux::Epoll
 
 =head1 VERSION
 
@@ -23,39 +23,17 @@ Version 0.001
 
 =head1 SYNOPSIS
 
- use Linux::Epoll;
-
- my $foo = Linux::Epoll->new();
- $foo->add($fh, 'in', sub { do_something($fh) });
- $foo->wait;
+ ...
 
 =head1 DESCRIPTION
 
-Epoll is a multiplexing mechanism that scales up O(1) with number of watched files. Linux::Epoll is a callback style epoll module, unlike other epoll modules available on CPAN.
+This module provides a few utility functions for Linux::Epoll
 
-=head1 METHODS
+=head1 SUBROUTINES
 
-=head2 new()
+=head2 event_bits_to_hash
 
-=head2 add($fh, $events, $callback)
-
-=head2 modify($fh, $events, $callback)
-
-=head2 delete($fh)
-
-=head2 wait($number = 1, $timeout = undef, $sigmask = undef)
-
-=head1 SEE ALSO
-
-=over 4
-
-=item * L<IO::Epoll>
-
-=item * L<Sys::Syscall>
-
-=item * L<IO::Poll>
-
-=back
+=head2 event_names_to_bits
 
 =head1 AUTHOR
 
