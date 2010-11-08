@@ -170,6 +170,14 @@ static SV* S_io_fdopen(pTHX_ int fd) {
 }
 #define io_fdopen(fd) S_io_fdopen(aTHX_ fd)
 
+static int S_interrupted(pTHX_ int retval) {
+	int ret = retval == -1 && errno == EINTR;
+	if (ret)
+		PERL_ASYNC_CHECK();
+	return ret;
+}
+#define interrupted(retval) S_interrupted(aTHX_ retval)
+
 MODULE = Linux::Epoll				PACKAGE = Linux::Epoll
 
 SV*
@@ -262,7 +270,7 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 		events = alloca(sizeof(struct epoll_event) * maxevents);
 		do {
 			RETVAL = epoll_pwait(efd, events, maxevents, real_timeout, real_sigset);
-		} while (RETVAL == -1 && errno == EINTR);
+		} while (interrupted(RETVAL));
 		if (RETVAL == -1)
 			die_sys("Couldn't wait on epollfd: %s");
 		for (i = 0; i < RETVAL; i++) {
