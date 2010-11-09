@@ -1,4 +1,4 @@
-use 5.006;
+use 5.010;
 use strict;
 use warnings;
 use Module::Build;
@@ -22,7 +22,7 @@ my $builder = Module::Build->new(
 		'Test::More'    => 0,
 	},
 	requires	        => {
-		perl            => 5.006,
+		perl            => 5.010,
 		parent          => 0,
 		'Sub::Exporter' => 0,
 	},
