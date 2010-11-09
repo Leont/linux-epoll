@@ -2,44 +2,56 @@
 
 use strict;
 use warnings;
-use IO::Handle;
-use Test::More tests => 8;
+use Test::More tests => 13;
 use Linux::Epoll;
-use Socket;
 
-STDOUT->autoflush(1);
-STDERR->autoflush(1);
+use Socket qw/AF_UNIX SOCK_STREAM PF_UNSPEC/;
+use Scalar::Util qw/weaken/;
+use Time::HiRes qw/alarm/;
 
 my $poll = Linux::Epoll->new();
-
-my $stdout = \*STDOUT;
-my $dupout = IO::Handle->new_from_fd(fileno $stdout, "w");
-
-alarm 2;
-
-my $subnum = 1;
 
 is $poll->wait(1, 0), 0, 'No events to wait for';
 
 socketpair my $in, my $out, AF_UNIX, SOCK_STREAM, PF_UNSPEC or die 'Failed';
+$_->blocking(0) for $in, $out;
 
-$poll->add($in, 'in', sub { my $foo = shift; sub { ok $foo, 'anonymous closure works'; is $subnum, 1, 'First handler' } }->(1));
-
-is $poll->wait(1, 0), 0, 'Still no events to wait for';
+my $subnum = 1;
+my $sub = sub { 
+	is $subnum, 1, 'Anonymous closure works';
+	is sysread($in, my $buffer, 3), 3, 'Read 3 bytes';
+};
+$poll->add($in, 'in', $sub);
+weaken $sub;
+ok defined $sub, '$sub is still defined';
 
 syswrite $out, 'foo', 3;
-
 is $poll->wait(1, 0), 1, 'Finally an event';
-
-sysread $in, my $buffer, 3;
-
 is $poll->wait(1, 0), 0, 'No more events to wait for';
 
-$poll->modify($in, [ qw/in out/ ], sub { is $subnum, 2, 'Second handler' });
+$SIG{ALRM} = sub {
+	$subnum = 2;
+	syswrite $out, 'bar', 3;
+};
+alarm 0.1;
+my $sub2 = sub {
+	is $subnum, 2, 'New handler works too'; 
+	is sysread($in, my $buffer, 3), 3, 'Got 3 more bytes';
+};
+$poll->modify($in, [ qw/in prio/ ], $sub2);
+weaken $sub2;
+ok defined $sub2, '$sub2 is still defined';
+is $poll->wait(2, 1), 1, 'Yet another event';
 
-$subnum = 2;
+$poll->delete($in);
+ok !defined $sub2, '$sub2 is no longer defined';
 
-syswrite $out, 'bar', 3;
+syswrite $out, 'baz', 3;
+is $poll->wait(1, 0), 0, 'No events on empty epoll';
 
-is $poll->wait(1, 0), 1, 'Finally an event';
+my $sub3 = sub { $subnum };
+$poll->add($out, 'in', $sub3);
+weaken $sub3;
 
+undef $out;
+ok !defined $sub3, '$sub3 is no longer defined';
