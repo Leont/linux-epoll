@@ -305,6 +305,13 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 	OUTPUT:
 		RETVAL
 
+int
+CLONE_SKIP(...)
+	CODE:
+		RETVAL = 1;
+	OUTPUT:
+		RETVAL
+
 MODULE = Linux::Epoll				PACKAGE = Linux::Epoll::Util
 
 SV*
