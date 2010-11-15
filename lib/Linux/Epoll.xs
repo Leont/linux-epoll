@@ -198,7 +198,7 @@ new(const char* package)
 	OUTPUT:
 		RETVAL
 
-void
+IV
 add(self, fh, events, callback)
 	SV* self;
 	SV* fh;
@@ -215,11 +215,18 @@ add(self, fh, events, callback)
 		event.events = get_eventids(events);
 		real_callback = extract_cv(callback);
 		event.data.ptr = real_callback;
-		if (epoll_ctl(efd, EPOLL_CTL_ADD, ofd, &event) == -1) 
-			die_sys("Couldn't add filehandle from epoll set: %s");
+		if (epoll_ctl(efd, EPOLL_CTL_ADD, ofd, &event) == -1) {
+			if (GIMME_V != G_VOID && errno == EEXIST)
+				XSRETURN_EMPTY;
+			else
+				die_sys("Couldn't add filehandle from epoll set: %s");
+		}
 		set_backref(self, fh, real_callback);
+		RETVAL = 1;
+	OUTPUT:
+		RETVAL
 
-void
+int
 modify(self, fh, events, callback)
 	SV* self;
 	SV* fh;
@@ -235,11 +242,18 @@ modify(self, fh, events, callback)
 		event.events = get_eventids(events);
 		real_callback = extract_cv(callback);
 		event.data.ptr = real_callback;
-		if (epoll_ctl(efd, EPOLL_CTL_MOD, ofd, &event) == -1) 
-			die_sys("Couldn't modify filehandle from epoll set: %s");
+		if (epoll_ctl(efd, EPOLL_CTL_MOD, ofd, &event) == -1) {
+			if (GIMME_V != G_VOID && errno == ENOENT)
+				XSRETURN_EMPTY;
+			else
+				die_sys("Couldn't modify filehandle from epoll set: %s");
+		}
 		set_backref(self, fh, real_callback);
+		RETVAL = 1;
+	OUTPUT:
+		RETVAL
 
-void
+int
 delete(self, fh)
 	SV* self;
 	SV* fh;
@@ -248,9 +262,16 @@ delete(self, fh)
 	CODE:
 		efd = get_fd(self);
 		ofd = get_fd(fh);
-		if (epoll_ctl(efd, EPOLL_CTL_DEL, ofd, NULL) == -1) 
-			die_sys("Couldn't delete filehandle from epoll set: %s");
+		if (epoll_ctl(efd, EPOLL_CTL_DEL, ofd, NULL) == -1) {
+			if (GIMME_V != G_VOID && errno == ENOENT)
+				XSRETURN_EMPTY;
+			else
+				die_sys("Couldn't delete filehandle from epoll set: %s");
+		}
 		del_backref(self, fh);
+		RETVAL = 1;
+	OUTPUT:
+		RETVAL
 
 int
 wait(self, maxevents = 1, timeout = undef, sigset = undef)
