@@ -56,7 +56,7 @@ static uint32_t S_get_eventid(pTHX_ const char* event_name) {
 }
 #define get_eventid(name) S_get_eventid(aTHX_ name)
 
-static uint32_t S_get_eventids(pTHX_ SV* names) {
+static uint32_t S_event_names_to_bits(pTHX_ SV* names) {
 	if (SvROK(names)) {
 		AV* array = (AV*)SvRV(names);
 		uint32_t ret = 0;
@@ -73,7 +73,7 @@ static uint32_t S_get_eventids(pTHX_ SV* names) {
 	else 
 		return get_eventid(SvPV_nolen(names));
 }
-#define get_eventids(name) S_get_eventids(aTHX_ name)
+#define event_names_to_bits(name) S_event_names_to_bits(aTHX_ name)
 
 static const char* S_get_event_name(pTHX_ uint32_t event_bit) {
 	size_t i;
@@ -84,7 +84,7 @@ static const char* S_get_event_name(pTHX_ uint32_t event_bit) {
 }
 #define get_event_name(event_bit) S_get_event_name(aTHX_ event_bit)
 
-static SV* S_get_event_hash(pTHX_ uint32_t events) {
+static SV* S_event_hits_to_hash(pTHX_ uint32_t events) {
 	int shift;
 	HV* ret = newHV();
 	for (shift = 0; shift < 32; ++shift) {
@@ -95,7 +95,7 @@ static SV* S_get_event_hash(pTHX_ uint32_t events) {
 	}
 	return newRV_noinc((SV*)ret);
 }
-#define get_event_hash(event_bits) S_get_event_hash(aTHX_ event_bits)
+#define event_hits_to_hash(event_bits) S_event_hits_to_hash(aTHX_ event_bits)
 
 static CV* S_extract_cv(pTHX_ SV* sv) {
 	HV* stash;
@@ -212,7 +212,7 @@ add(self, fh, events, callback)
 	CODE:
 		efd = get_fd(self);
 		ofd = get_fd(fh);
-		event.events = get_eventids(events);
+		event.events = event_names_to_bits(events);
 		real_callback = extract_cv(callback);
 		event.data.ptr = real_callback;
 		if (epoll_ctl(efd, EPOLL_CTL_ADD, ofd, &event) == -1) {
@@ -239,7 +239,7 @@ modify(self, fh, events, callback)
 	CODE:
 		efd = get_fd(self);
 		ofd = get_fd(fh);
-		event.events = get_eventids(events);
+		event.events = event_names_to_bits(events);
 		real_callback = extract_cv(callback);
 		event.data.ptr = real_callback;
 		if (epoll_ctl(efd, EPOLL_CTL_MOD, ofd, &event) == -1) {
@@ -276,7 +276,7 @@ delete(self, fh)
 int
 wait(self, maxevents = 1, timeout = undef, sigset = undef)
 	SV* self;
-	size_t maxevents;
+	ssize_t maxevents;
 	SV* timeout;
 	SV* sigset;
 	PREINIT:
@@ -295,7 +295,7 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 		} while (interrupted(RETVAL));
 		if (RETVAL == -1)
 			die_sys("Couldn't wait on epollfd: %s");
-		for (i = 0; i < RETVAL; i++) {
+		for (i = 0; i < RETVAL; ++i) {
 			CV* callback = (CV*) events[i].data.ptr;
 			PUSHMARK(SP);
 			mXPUSHu(events[i].events);
@@ -318,7 +318,7 @@ SV*
 event_bits_to_hash(bits)
 	UV bits;
 	CODE:
-		RETVAL = get_event_hash(bits);
+		RETVAL = event_hits_to_hash(bits);
 	OUTPUT:
 		RETVAL
 
@@ -326,6 +326,6 @@ UV
 event_names_to_bits(names)
 	SV* names;
 	CODE:
-		RETVAL = get_eventids(names);
+		RETVAL = event_names_to_bits(names);
 	OUTPUT:
 		RETVAL
