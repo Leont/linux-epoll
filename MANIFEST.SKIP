@@ -12,3 +12,4 @@ Linux-Epoll-.*
 ^lib/.*\.c$
 ^lib/.*\.o$
 ^.ignore
+^MYMETA.yml$
