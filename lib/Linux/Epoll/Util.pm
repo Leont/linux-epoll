@@ -5,7 +5,7 @@ use warnings FATAL => 'all';
 
 our $VERSION = '0.001';
 
-require Linux::Epoll;
+use Linux::Epoll;
 
 use Sub::Exporter -setup => { exports => [qw/event_names_to_bits event_bits_to_hash/] };
 
@@ -21,19 +21,19 @@ Linux::Epoll::Util - Utility functions for Linux::Epoll
 
 Version 0.001
 
-=head1 SYNOPSIS
-
- ...
-
 =head1 DESCRIPTION
 
 This module provides a few utility functions for Linux::Epoll
 
 =head1 SUBROUTINES
 
-=head2 event_bits_to_hash
+=head2 event_bits_to_hash($bits)
 
-=head2 event_names_to_bits
+Convert a bitset into a hashref, with keys being the names of the bits that are set and the values being true.
+
+=head2 event_names_to_bits($names)
+
+Convert $names into a event bitset. $names must either be a string from the set described in L<Linux::Epoll>, or an arrayref containing such strings.
 
 =head1 AUTHOR
 

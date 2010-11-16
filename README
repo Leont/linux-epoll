@@ -1,6 +1,6 @@
 Linux-Epoll
 
-Epoll is a multiplexing mechanism that scales up O(1) with number of watched files. Linux::Epoll is a callback style epoll module, unlike other Epoll modules availible on CPAN. This may or may not suit your needs.
+Epoll is a multiplexing mechanism that scales up O(1) with number of watched files. Linux::Epoll is a callback style epoll module, unlike other Epoll modules available on CPAN. This may or may not suit your needs.
 
 INSTALLATION
 
