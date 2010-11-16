@@ -198,7 +198,7 @@ new(const char* package)
 	OUTPUT:
 		RETVAL
 
-IV
+const char*
 add(self, fh, events, callback)
 	SV* self;
 	SV* fh;
@@ -222,11 +222,11 @@ add(self, fh, events, callback)
 				die_sys("Couldn't add filehandle from epoll set: %s");
 		}
 		set_backref(self, fh, real_callback);
-		RETVAL = 1;
+		RETVAL = "0 but true";
 	OUTPUT:
 		RETVAL
 
-int
+const char*
 modify(self, fh, events, callback)
 	SV* self;
 	SV* fh;
@@ -249,11 +249,11 @@ modify(self, fh, events, callback)
 				die_sys("Couldn't modify filehandle from epoll set: %s");
 		}
 		set_backref(self, fh, real_callback);
-		RETVAL = 1;
+		RETVAL = "0 but true";
 	OUTPUT:
 		RETVAL
 
-int
+const char*
 delete(self, fh)
 	SV* self;
 	SV* fh;
@@ -269,7 +269,7 @@ delete(self, fh)
 				die_sys("Couldn't delete filehandle from epoll set: %s");
 		}
 		del_backref(self, fh);
-		RETVAL = 1;
+		RETVAL = "0 but true";
 	OUTPUT:
 		RETVAL
 
