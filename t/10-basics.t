@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 13;
+use Test::More tests => 16;
 use Linux::Epoll;
 
 use Socket qw/AF_UNIX SOCK_STREAM PF_UNSPEC/;
@@ -21,7 +21,7 @@ my $sub = sub {
 	is $subnum, 1, 'Anonymous closure works';
 	is sysread($in, my $buffer, 3), 3, 'Read 3 bytes';
 };
-$poll->add($in, 'in', $sub);
+ok $poll->add($in, 'in', $sub), 'Can add to the set';
 weaken $sub;
 ok defined $sub, '$sub is still defined';
 
@@ -38,12 +38,12 @@ my $sub2 = sub {
 	is $subnum, 2, 'New handler works too'; 
 	is sysread($in, my $buffer, 3), 3, 'Got 3 more bytes';
 };
-$poll->modify($in, [ qw/in prio/ ], $sub2);
+ok $poll->modify($in, [ qw/in prio/ ], $sub2), 'Can modify the set';
 weaken $sub2;
 ok defined $sub2, '$sub2 is still defined';
 is $poll->wait(2, 1), 1, 'Yet another event';
 
-$poll->delete($in);
+ok $poll->delete($in), 'Can delete from set';
 ok !defined $sub2, '$sub2 is no longer defined';
 
 syswrite $out, 'baz', 3;
