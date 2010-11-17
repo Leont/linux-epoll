@@ -31,25 +31,28 @@ const sigset_t* sv_to_sigset(pTHX_ SV* sigmask) {
 	return (const sigset_t*) string;
 }
 
-typedef struct { const char* key; uint32_t value; } map[];
+typedef struct { const char* key; size_t keylen; uint32_t value; } entry;
+typedef entry map[];
 
 static map events = {
-	{ "in"     , EPOLLIN      },
-	{ "out"    , EPOLLOUT     },
-	{ "err"    , EPOLLERR     },
-	{ "prio"   , EPOLLPRI     },
-	{ "et"     , EPOLLET      },
-	{ "hup"    , EPOLLHUP     },
+	{ "in"     , 2, EPOLLIN      },
+	{ "out"    , 3, EPOLLOUT     },
+	{ "err"    , 3, EPOLLERR     },
+	{ "prio"   , 4, EPOLLPRI     },
+	{ "et"     , 2, EPOLLET      },
+	{ "hup"    , 3, EPOLLHUP     },
 #ifdef EPOLLRDHUP
-	{ "rdhup"  , EPOLLRDHUP   },
+	{ "rdhup"  , 5, EPOLLRDHUP   },
 #endif
-	{ "oneshot", EPOLLONESHOT }
+	{ "oneshot", 7, EPOLLONESHOT }
 };
 
-static uint32_t S_get_eventid(pTHX_ const char* event_name) {
+static uint32_t S_get_eventid(pTHX_ SV* event) {
+	STRLEN len;
+	const char* event_name = SvPV(event, len);
 	size_t i;
 	for (i = 0; i < sizeof events / sizeof *events; ++i) {
-		if (strEQ(event_name, events[i].key))
+		if (events[i].keylen == len && strEQ(events[i].key, event_name))
 			return events[i].value;
 	}
 	Perl_croak(aTHX_ "No such event type '%s' known", event_name);
@@ -66,36 +69,23 @@ static uint32_t S_event_names_to_bits(pTHX_ SV* names) {
 		len = av_len(array) + 1;
 		for (i = 0; i < len; ++i) {
 			SV** elem = av_fetch(array, i, FALSE);
-			ret |= get_eventid(SvPV_nolen(*elem));
+			ret |= get_eventid(*elem);
 		}
 		return ret;
 	}
 	else 
-		return get_eventid(SvPV_nolen(names));
+		return get_eventid(names);
 }
 #define event_names_to_bits(name) S_event_names_to_bits(aTHX_ name)
 
-static const char* S_get_event_name(pTHX_ uint32_t event_bit) {
+static entry* S_get_event_name(pTHX_ uint32_t event_bit) {
 	size_t i;
 	for (i = 0; i < sizeof events / sizeof *events; ++i)
 		if (events[i].value == event_bit)
-			return events[i].key;
+			return &events[i];
 	Perl_croak(aTHX_ "No such event type '%d' known", event_bit);
 }
 #define get_event_name(event_bit) S_get_event_name(aTHX_ event_bit)
-
-static SV* S_event_hits_to_hash(pTHX_ uint32_t events) {
-	int shift;
-	HV* ret = newHV();
-	for (shift = 0; shift < 32; ++shift) {
-		if (events & (1 << shift)) {
-			const char* tmp = get_event_name(1 << shift);
-			hv_store(ret, tmp, 0, newSViv(1), 0);
-		}
-	}
-	return newRV_noinc((SV*)ret);
-}
-#define event_hits_to_hash(event_bits) S_event_hits_to_hash(aTHX_ event_bits)
 
 static CV* S_extract_cv(pTHX_ SV* sv) {
 	HV* stash;
@@ -285,6 +275,8 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 		const sigset_t* real_sigset;
 		struct epoll_event* events;
 	CODE:
+		if (maxevents <= 0)
+			Perl_croak(aTHX_ "Can't wait for a non-positive number of events (maxevents = %d)", maxevents);
 		efd = get_fd(self);
 		real_timeout = SvOK(timeout) ? SvNV(timeout) * 1000 : -1;
 		real_sigset = SvOK(sigset) ? sv_to_sigset(aTHX_ sigset) : NULL;
@@ -318,14 +310,35 @@ SV*
 event_bits_to_hash(bits)
 	UV bits;
 	CODE:
-		RETVAL = event_hits_to_hash(bits);
+		int shift;
+		HV* ret = newHV();
+		for (shift = 0; shift < 32; ++shift) {
+			if (bits & (1 << shift)) {
+				entry* tmp = get_event_name(1 << shift);
+				hv_store(ret, tmp->key, tmp->keylen, newSViv(1), 0);
+			}
+		}
+		RETVAL = newRV_noinc((SV*)ret);
+	OUTPUT:
+		RETVAL
+
+SV*
+event_bits_to_names(bits)
+	UV bits;
+	CODE:
+		int shift;
+		AV* ret = newAV();
+		for (shift = 0; shift < 32; ++shift) {
+			if (bits & (1 << shift)) {
+				entry* tmp = get_event_name(1 << shift);
+				SV* val = newSVpvn(tmp->key, tmp->keylen);
+				av_push(ret, val);
+			}
+		}
+		RETVAL = newRV_noinc((SV*)ret);
 	OUTPUT:
 		RETVAL
 
 UV
 event_names_to_bits(names)
 	SV* names;
-	CODE:
-		RETVAL = event_names_to_bits(names);
-	OUTPUT:
-		RETVAL
