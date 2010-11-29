@@ -6,7 +6,7 @@ use warnings FATAL => 'all';
 
 use parent 'IO::Handle';
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 XSLoader::load(__PACKAGE__, $VERSION);
 
@@ -20,7 +20,7 @@ Linux::Epoll - O(1) multiplexing for Linux
 
 =head1 VERSION
 
-Version 0.001
+Version 0.002
 
 =head1 SYNOPSIS
 

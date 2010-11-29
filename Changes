@@ -1,5 +1,9 @@
 Revision history for Linux-Epoll
 
+0.002   2010-11-29
+        Fixed event_bits_to_hash
+        Added event_bits_to_names
+
 0.001   2010-11-16
         First version, released on an unsuspecting world.
 
