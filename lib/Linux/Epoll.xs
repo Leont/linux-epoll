@@ -1,3 +1,10 @@
+#ifndef _GNU_SOURCE
+#	define _GNU_SOURCE
+#endif
+#define GNU_STRERROR_R
+
+#include <string.h>
+
 #include <sys/epoll.h>
 
 #define PERL_NO_GET_CONTEXT
@@ -8,14 +15,14 @@
 #define get_fd(self) PerlIO_fileno(IoIFP(sv_2io(SvRV(self))));
 
 static void get_sys_error(char* buffer, size_t buffer_size) {
-#ifdef _GNU_SOURCE
+#if _POSIX_VERSION >= 200112L
 	const char* message = strerror_r(errno, buffer, buffer_size);
-	if (message != buffer) {
-		memcpy(buffer, message, buffer_size -1);
-		buffer[buffer_size] = '\0';
-	}
+	if (message != buffer)
+		memcpy(buffer, message, buffer_size);
 #else
-	strerror_r(errno, buffer, buffer_size);
+	const char* message = strerror(errno);
+	strncpy(buffer, message, buffer_size - 1);
+	buffer[buffer_size - 1] = '\0';
 #endif
 }
 
