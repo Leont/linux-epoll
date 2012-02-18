@@ -16,9 +16,13 @@
 
 static void get_sys_error(char* buffer, size_t buffer_size) {
 #if _POSIX_VERSION >= 200112L
+#	ifdef GNU_STRERROR_R
 	const char* message = strerror_r(errno, buffer, buffer_size);
 	if (message != buffer)
 		memcpy(buffer, message, buffer_size);
+#	else
+	strerror_r(errno, buffer, buffer_size);
+#	endif
 #else
 	const char* message = strerror(errno);
 	strncpy(buffer, message, buffer_size - 1);
