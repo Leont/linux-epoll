@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          Fixed compilation issue on multiplicity perls
 
 0.003     2011-09-15 01:23:13 Europe/Amsterdam
           Converted to Dist::Zilla

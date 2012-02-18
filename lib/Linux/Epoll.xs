@@ -295,7 +295,7 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 			Perl_croak(aTHX_ "Can't wait for a non-positive number of events (maxevents = %d)", maxevents);
 		efd = get_fd(self);
 		real_timeout = SvOK(timeout) ? SvNV(timeout) * 1000 : -1;
-		real_sigset = SvOK(sigset) ? sv_to_sigset(aTHX_ sigset, "epoll_pwait") : NULL;
+		real_sigset = SvOK(sigset) ? sv_to_sigset(sigset, "epoll_pwait") : NULL;
 
 		events = alloca(sizeof(struct epoll_event) * maxevents);
 		do {
