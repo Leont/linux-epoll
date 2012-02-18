@@ -10,9 +10,9 @@ XSLoader::load(__PACKAGE__, __PACKAGE__->VERSION);
 
 1;
 
-__END__
-
 #ABSTRACT: O(1) multiplexing for Linux
+
+__END__
 
 =head1 SYNOPSIS
 

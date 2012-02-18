@@ -9,9 +9,9 @@ use Sub::Exporter -setup => { exports => [qw/event_names_to_bits event_bits_to_n
 
 1;    # End of Linux::Epoll::Util
 
-__END__
-
 #ABSTRACT: Utility functions for Linux::Epoll
+
+__END__
 
 =head1 DESCRIPTION
 
