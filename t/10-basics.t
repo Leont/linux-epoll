@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 16;
+use Test::More tests => 17;
 use Linux::Epoll;
 
 use Socket qw/AF_UNIX SOCK_STREAM PF_UNSPEC/;
@@ -41,7 +41,8 @@ my $sub2 = sub {
 ok $poll->modify($in, [ qw/in prio/ ], $sub2), 'Can modify the set';
 weaken $sub2;
 ok defined $sub2, '$sub2 is still defined';
-is $poll->wait(2, 1), 1, 'Yet another event';
+is $poll->wait(2, 1), undef, 'Interrupted event';
+is $poll->wait(2, 0), 1, 'Yet another event';
 
 ok $poll->delete($in), 'Can delete from set';
 ok !defined $sub2, '$sub2 is no longer defined';

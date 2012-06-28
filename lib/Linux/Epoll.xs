@@ -302,11 +302,12 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 		real_sigset = SvOK(sigset) ? sv_to_sigset(sigset, "epoll_pwait") : NULL;
 
 		events = alloca(sizeof(struct epoll_event) * maxevents);
-		do {
-			RETVAL = epoll_pwait(efd, events, maxevents, real_timeout, real_sigset);
-		} while (interrupted(RETVAL));
-		if (RETVAL == -1)
-			die_sys("Couldn't wait on epollfd: %s");
+		RETVAL = epoll_pwait(efd, events, maxevents, real_timeout, real_sigset);
+		if (RETVAL == -1) {
+			if (GIMME_V == G_VOID || errno != EINTR)
+				die_sys("Couldn't wait on epollfd: %s");
+			XSRETURN_EMPTY;
+		}
 		for (i = 0; i < RETVAL; ++i) {
 			CV* callback = (CV*) events[i].data.ptr;
 			PUSHMARK(SP);
