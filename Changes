@@ -1,6 +1,8 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+
+0.005     2012-06-29 17:04:09 Europe/Amsterdam
           Don't expose bitmasks anymore
           Don't retry on EINTR
 
