@@ -19,7 +19,10 @@ __END__
  use Linux::Epoll;
 
  my $epoll = Linux::Epoll->new();
- $epoll->add($fh, 'in', sub { do_something($fh) });
+ $epoll->add($fh, 'in', sub {
+     my $events = shift;
+     do_something($fh) if $events->{in};
+ });
  1 while $epoll->wait;
 
 =head1 DESCRIPTION
@@ -70,7 +73,7 @@ Create a new epoll instance.
 
 =method add($fh, $events, $callback)
 
-Register the filehandle with the epoll instance and associate events C<$events> and callback C<$callback> with it. C<$events> may be either a string (e.g. C<'in'>) or an arrayref (e.g. C<[qw/in out hup/]>). If a filehandle already exists in the set and C<add> is called in non-void context, it returns undef and sets C<$!> to C<EEXIST>. On all other error conditions an exception is thrown.
+Register the filehandle with the epoll instance and associate events C<$events> and callback C<$callback> with it. C<$events> may be either a string (e.g. C<'in'>) or an arrayref (e.g. C<[qw/in out hup/]>). If a filehandle already exists in the set and C<add> is called in non-void context, it returns undef and sets C<$!> to C<EEXIST>. On all other error conditions an exception is thrown. The callback gets a single argument, a hashref whose keys are the triggered events.
 
 =method modify($fh, $events, $callback)
 

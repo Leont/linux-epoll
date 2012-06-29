@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          Don't expose bitmasks anymore
           Don't retry on EINTR
 
 0.004     2012-02-18 21:52:56 Europe/Amsterdam

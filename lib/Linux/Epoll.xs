@@ -186,6 +186,19 @@ static int S_interrupted(pTHX_ int retval) {
 }
 #define interrupted(retval) S_interrupted(aTHX_ retval)
 
+static SV* S_event_bits_to_hash(pTHX_ UV bits) {
+	int shift;
+	HV* ret = newHV();
+	for (shift = 0; shift < 32; ++shift) {
+		if (bits & (1 << shift)) {
+			entry* tmp = get_event_name(1 << shift);
+			hv_store(ret, tmp->key, tmp->keylen, newSViv(1), 0);
+		}
+	}
+	return newRV_noinc((SV*)ret);
+}
+#define event_bits_to_hash(bits) S_event_bits_to_hash(aTHX_ bits)
+
 MODULE = Linux::Epoll				PACKAGE = Linux::Epoll
 
 SV*
@@ -311,7 +324,7 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 		for (i = 0; i < RETVAL; ++i) {
 			CV* callback = (CV*) events[i].data.ptr;
 			PUSHMARK(SP);
-			mXPUSHu(events[i].events);
+			mXPUSHs(event_bits_to_hash(events[i].events));
 			PUTBACK;
 			call_sv((SV*)callback, G_VOID | G_DISCARD);
 		}
@@ -325,41 +338,3 @@ CLONE_SKIP(...)
 	OUTPUT:
 		RETVAL
 
-MODULE = Linux::Epoll				PACKAGE = Linux::Epoll::Util
-
-SV*
-event_bits_to_hash(bits)
-	UV bits;
-	CODE:
-		int shift;
-		HV* ret = newHV();
-		for (shift = 0; shift < 32; ++shift) {
-			if (bits & (1 << shift)) {
-				entry* tmp = get_event_name(1 << shift);
-				hv_store(ret, tmp->key, tmp->keylen, newSViv(1), 0);
-			}
-		}
-		RETVAL = newRV_noinc((SV*)ret);
-	OUTPUT:
-		RETVAL
-
-SV*
-event_bits_to_names(bits)
-	UV bits;
-	CODE:
-		int shift;
-		AV* ret = newAV();
-		for (shift = 0; shift < 32; ++shift) {
-			if (bits & (1 << shift)) {
-				entry* tmp = get_event_name(1 << shift);
-				SV* val = newSVpvn(tmp->key, tmp->keylen);
-				av_push(ret, val);
-			}
-		}
-		RETVAL = newRV_noinc((SV*)ret);
-	OUTPUT:
-		RETVAL
-
-UV
-event_names_to_bits(names)
-	SV* names;
