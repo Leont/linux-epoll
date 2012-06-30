@@ -1,6 +1,8 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+
+0.006     2012-06-30 13:22:31 Europe/Amsterdam
           Fix rounding issue in timeout
           Be more permissive with EINTR and EPERM
 
