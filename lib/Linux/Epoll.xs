@@ -240,7 +240,7 @@ add(self, fh, events, callback)
 		real_callback = extract_cv(callback);
 		event.data.ptr = real_callback;
 		if (epoll_ctl(efd, EPOLL_CTL_ADD, ofd, &event) == -1) {
-			if (GIMME_V != G_VOID && errno == EEXIST)
+			if (GIMME_V != G_VOID && (errno == EEXIST || errno == EPERM))
 				XSRETURN_EMPTY;
 			else
 				die_sys("Couldn't add filehandle from epoll set: %s");
@@ -318,7 +318,7 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 		events = alloca(sizeof(struct epoll_event) * maxevents);
 		RETVAL = epoll_pwait(efd, events, maxevents, real_timeout, real_sigset);
 		if (RETVAL == -1) {
-			if (GIMME_V == G_VOID || errno != EINTR)
+			if (errno != EINTR)
 				die_sys("Couldn't wait on epollfd: %s");
 			XSRETURN_EMPTY;
 		}
