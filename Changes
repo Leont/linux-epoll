@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          Fix rounding issue in timeout
 
 0.005     2012-06-29 17:04:09 Europe/Amsterdam
           Don't expose bitmasks anymore
