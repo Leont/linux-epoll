@@ -21,7 +21,7 @@ XSLoader::load(__PACKAGE__, __PACKAGE__->VERSION);
      my $events = shift;
      do_something($fh) if $events->{in};
  });
- 1 while $epoll->wait;
+ $epoll->wait while 1;
 
 =head1 DESCRIPTION
 
