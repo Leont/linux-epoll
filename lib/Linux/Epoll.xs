@@ -12,6 +12,7 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#include "ppport.h"
 
 #define get_fd(self) PerlIO_fileno(IoIFP(sv_2io(SvRV(self))));
 
@@ -118,20 +119,6 @@ static CV* S_extract_cv(pTHX_ SV* sv) {
 }
 #define extract_cv(sv) S_extract_cv(aTHX_ sv)
 
-static MAGIC* S_mg_find_ext(pTHX_ SV* sv, U16 private) {
-	PERL_UNUSED_CONTEXT;
-	if (sv && SvMAGICAL(sv)) {
-		MAGIC* mg;
-		for (mg = SvMAGIC(sv); mg; mg = mg->mg_moremagic)
-			if (mg->mg_type == PERL_MAGIC_ext && mg->mg_private == private)
-				return mg;
-	}
-	return NULL;
-}
-#define mg_find_ext(sv, private) S_mg_find_ext(aTHX_ sv, private)
-
-static const U16 magic_number = 0x4c45;
-
 struct data {
 	AV* backrefs;
 	int index;
@@ -143,10 +130,11 @@ int weak_set(pTHX_ SV* sv, MAGIC* magic) {
 	return 0;
 }
 
+MGVTBL epoll_magic = { 0 };
 MGVTBL weak_magic = { NULL, weak_set, NULL, NULL, NULL };
 
 static void S_set_backref(pTHX_ SV* epoll, SV* fh, CV* callback) {
-	MAGIC* mg = mg_find_ext(SvRV(epoll), magic_number);
+	MAGIC* mg = mg_findext(SvRV(epoll), PERL_MAGIC_ext, &epoll_magic);
 	AV* backrefs = (AV*)mg->mg_obj;
 	int fd = get_fd(fh);
 	struct data backref = { backrefs, fd };
@@ -159,7 +147,7 @@ static void S_set_backref(pTHX_ SV* epoll, SV* fh, CV* callback) {
 #define set_backref(epoll, fh, cb) S_set_backref(aTHX_ epoll, fh, cb)
 
 static void S_del_backref(pTHX_ SV* epoll, SV* fh) {
-	MAGIC* mg = mg_find_ext(SvRV(epoll), magic_number);
+	MAGIC* mg = mg_findext(SvRV(epoll), PERL_MAGIC_ext, &epoll_magic);
 	I32 fd = get_fd(fh);
 	av_delete((AV*)mg->mg_obj, fd, G_DISCARD);
 }
@@ -216,8 +204,7 @@ new(const char* package)
 		if (fd < 0) 
 			die_sys("Couldn't open epollfd: %s");
 		RETVAL = io_fdopen(fd);
-		mg = sv_magicext(SvRV(RETVAL), sv_2mortal((SV*)newAV()), PERL_MAGIC_ext, NULL, NULL, 0);
-		mg->mg_private = magic_number;
+		mg = sv_magicext(SvRV(RETVAL), sv_2mortal((SV*)newAV()), PERL_MAGIC_ext, &epoll_magic, NULL, 0);
 		sv_bless(RETVAL, gv_stashpv(package, TRUE));
 	OUTPUT:
 		RETVAL
