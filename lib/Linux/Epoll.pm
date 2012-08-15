@@ -65,9 +65,9 @@ Sets the one-shot behavior for the associated file descriptor. This means that a
 
 =back
 
-=method new()
+=method new($options = undef)
 
-Create a new epoll instance.
+Create a new epoll instance. It takes an optional hashref as argument.
 
 =method add($fh, $events, $callback)
 

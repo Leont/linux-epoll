@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          Accept hashref as extra argument to new
 
 0.006     2012-06-30 13:22:31 Europe/Amsterdam
           Fix rounding issue in timeout
