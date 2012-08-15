@@ -14,7 +14,7 @@
 #include "XSUB.h"
 #include "ppport.h"
 
-#define get_fd(self) PerlIO_fileno(IoIFP(sv_2io(SvRV(self))));
+#define get_fd(self) PerlIO_fileno(IoIFP(sv_2io(SvRV(self))))
 
 static void get_sys_error(char* buffer, size_t buffer_size) {
 #if _POSIX_VERSION >= 200112L
@@ -133,13 +133,13 @@ int weak_set(pTHX_ SV* sv, MAGIC* magic) {
 MGVTBL epoll_magic = { 0 };
 MGVTBL weak_magic = { NULL, weak_set, NULL, NULL, NULL };
 
+#define get_backrefs(epoll) (AV*)mg_findext(SvRV(epoll), PERL_MAGIC_ext, &epoll_magic)->mg_obj
+
 static void S_set_backref(pTHX_ SV* epoll, SV* fh, CV* callback) {
-	MAGIC* mg = mg_findext(SvRV(epoll), PERL_MAGIC_ext, &epoll_magic);
-	AV* backrefs = (AV*)mg->mg_obj;
+	AV* backrefs = get_backrefs(epoll);
 	int fd = get_fd(fh);
 	struct data backref = { backrefs, fd };
-	SV* ref = newSVsv(fh);
-	sv_rvweaken(ref);
+	SV* ref = sv_rvweaken(newSVsv(fh));
 
 	av_store(backrefs, fd, ref);
 	sv_magicext(ref, (SV*)callback, PERL_MAGIC_ext, &weak_magic, (const char*)&backref, sizeof backref);
@@ -147,9 +147,7 @@ static void S_set_backref(pTHX_ SV* epoll, SV* fh, CV* callback) {
 #define set_backref(epoll, fh, cb) S_set_backref(aTHX_ epoll, fh, cb)
 
 static void S_del_backref(pTHX_ SV* epoll, SV* fh) {
-	MAGIC* mg = mg_findext(SvRV(epoll), PERL_MAGIC_ext, &epoll_magic);
-	I32 fd = get_fd(fh);
-	av_delete((AV*)mg->mg_obj, fd, G_DISCARD);
+	av_delete(get_backrefs(epoll), get_fd(fh), G_DISCARD);
 }
 #define del_backref(epoll, fh) S_del_backref(aTHX_ epoll, fh)
 
