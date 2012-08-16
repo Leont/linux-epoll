@@ -162,7 +162,7 @@ static void S_del_backref(pTHX_ SV* epoll, SV* fh) {
 
 static SV* S_io_fdopen(pTHX_ int fd) {
 	PerlIO* pio = PerlIO_fdopen(fd, "r");
-	GV* gv = newGVgen("Symbol");
+	GV* gv = newGVgen("Linux::Epoll");
 	SV* ret = newRV_noinc((SV*)gv);
 	IO* io = GvIOn(gv);
 	IoTYPE(io) = '<';
