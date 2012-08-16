@@ -124,14 +124,21 @@ struct data {
 	int index;
 };
 
-int weak_set(pTHX_ SV* sv, MAGIC* magic) {
+static int weak_set(pTHX_ SV* sv, MAGIC* magic) {
 	struct data* data = (struct data*)magic->mg_ptr;
 	av_delete(data->backrefs, data->index, G_DISCARD);
 	return 0;
 }
 
-MGVTBL epoll_magic = { 0 };
-MGVTBL weak_magic = { NULL, weak_set, NULL, NULL, NULL };
+static int weak_free(pTHX_ SV* sv, MAGIC* magic);
+
+MGVTBL epoll_magic = { NULL };
+MGVTBL weak_magic = { NULL, weak_set, NULL, NULL, weak_free };
+
+static int weak_free(pTHX_ SV* sv, MAGIC* magic) {
+	struct data* data = (struct data*)magic->mg_ptr;
+	mg_findext(sv, PERL_MAGIC_ext, &weak_magic)->mg_virtual = NULL; /* Cover perl bugs under the carpet */
+}
 
 #define get_backrefs(epoll) (AV*)mg_findext(SvRV(epoll), PERL_MAGIC_ext, &epoll_magic)->mg_obj
 
