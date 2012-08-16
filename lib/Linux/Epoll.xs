@@ -165,14 +165,6 @@ static SV* S_io_fdopen(pTHX_ int fd) {
 }
 #define io_fdopen(fd) S_io_fdopen(aTHX_ fd)
 
-static int S_interrupted(pTHX_ int retval) {
-	int ret = retval == -1 && errno == EINTR;
-	if (ret)
-		PERL_ASYNC_CHECK();
-	return ret;
-}
-#define interrupted(retval) S_interrupted(aTHX_ retval)
-
 static SV* S_event_bits_to_hash(pTHX_ UV bits) {
 	int shift;
 	HV* ret = newHV();
