@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          Shipped with updated ppport.h
 
 0.007     2012-08-16 15:58:24 Europe/Amsterdam
           Accept hashref as extra argument to new
