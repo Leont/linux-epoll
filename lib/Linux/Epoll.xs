@@ -12,6 +12,8 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#define NEED_mg_findext
+#define NEED_sv_unmagicext
 #include "ppport.h"
 
 #define get_fd(self) PerlIO_fileno(IoIFP(sv_2io(SvRV(self))))
