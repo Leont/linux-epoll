@@ -41,7 +41,7 @@ static void S_die_sys(pTHX_ const char* format) {
 }
 #define die_sys(format) S_die_sys(aTHX_ format)
 
-sigset_t* S_sv_to_sigset(pTHX_ SV* sigmask, const char* name) {
+static sigset_t* S_sv_to_sigset(pTHX_ SV* sigmask, const char* name) {
 	IV tmp;
 	if (!SvOK(sigmask))
 		return NULL;
@@ -179,9 +179,12 @@ static SV* S_event_bits_to_hash(pTHX_ UV bits) {
 	int shift;
 	HV* ret = newHV();
 	for (shift = 0; shift < 32; ++shift) {
-		if (bits & (1 << shift)) {
-			entry* tmp = get_event_name(1 << shift);
-			hv_store(ret, tmp->key, tmp->keylen, newSViv(1), 0);
+		int bit_value = 1 << shift;
+		if (bits & bit_value) {
+			entry* tmp = get_event_name(bit_value);
+			hv_store(ret, tmp->key, tmp->keylen, &PL_sv_yes, 0);
+			if (bits == bit_value)
+				break;
 		}
 	}
 	return newRV_noinc((SV*)ret);
