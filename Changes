@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          Get rid of unused argument to new
 
 0.009     2014-03-28 21:53:04EET+0200 Europe/Bucharest
           Import required functionality from ppport for <5.14
