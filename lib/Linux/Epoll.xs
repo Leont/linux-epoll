@@ -319,6 +319,7 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 			mXPUSHs(event_bits_to_hash(events[i].events));
 			PUTBACK;
 			call_sv((SV*)callback, G_VOID | G_DISCARD);
+			SPAGAIN;
 		}
 	OUTPUT:
 		RETVAL

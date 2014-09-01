@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          Fix a stack corruption issue
 
 0.010     2014-04-18 17:28:38CEST+0200 Europe/Amsterdam
           Get rid of unused argument to new
