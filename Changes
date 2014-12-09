@@ -1,6 +1,8 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+
+0.012     2014-12-09 21:55:14+01:00 Europe/Amsterdam
           Keep callbacks alive during the entire loop
 
 0.011     2014-09-03 02:46:21+02:00 Europe/Amsterdam
