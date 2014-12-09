@@ -314,6 +314,11 @@ wait(self, maxevents = 1, timeout = undef, sigset = undef)
 			XSRETURN_EMPTY;
 		}
 		for (i = 0; i < RETVAL; ++i) {
+			SV* tmp = (SV*)events[i].data.ptr;
+			SvREFCNT_inc(tmp);
+			SAVEFREESV(tmp);
+		}
+		for (i = 0; i < RETVAL; ++i) {
 			CV* callback = (CV*) events[i].data.ptr;
 			PUSHMARK(SP);
 			mXPUSHs(event_bits_to_hash(events[i].events));
