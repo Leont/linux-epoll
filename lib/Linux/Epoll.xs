@@ -166,21 +166,20 @@ static int weak_free(pTHX_ SV* sv, MAGIC* magic) {
 
 #define get_backrefs(epoll) (AV*)mg_findext(SvRV(epoll), PERL_MAGIC_ext, &epoll_magic)->mg_obj
 
-static void S_set_backref(pTHX_ SV* epoll, SV* fh, CV* callback) {
+static void S_set_backref(pTHX_ SV* epoll, SV* fh, int fd, CV* callback) {
 	AV* backrefs = get_backrefs(epoll);
-	int fd = get_fd(fh);
 	struct data backref = { backrefs, fd };
 	SV* ref = sv_rvweaken(SvROK(fh) ? newSVsv(fh) : newRV(fh));
 
 	av_store(backrefs, fd, ref);
 	sv_magicext(ref, (SV*)callback, PERL_MAGIC_ext, &weak_magic, (const char*)&backref, sizeof backref);
 }
-#define set_backref(epoll, fh, cb) S_set_backref(aTHX_ epoll, fh, cb)
+#define set_backref(epoll, fh, fd, cb) S_set_backref(aTHX_ epoll, fh, fd, cb)
 
-static void S_del_backref(pTHX_ SV* epoll, SV* fh) {
-	av_delete(get_backrefs(epoll), get_fd(fh), G_DISCARD);
+static void S_del_backref(pTHX_ SV* epoll, int fd) {
+	av_delete(get_backrefs(epoll), fd, G_DISCARD);
 }
-#define del_backref(epoll, fh) S_del_backref(aTHX_ epoll, fh)
+#define del_backref(epoll, fd) S_del_backref(aTHX_ epoll, fd)
 
 #define undef &PL_sv_undef
 
@@ -257,7 +256,7 @@ add(self, fh, events, callback)
 			else
 				die_sys("Couldn't add filehandle from epoll set: %s");
 		}
-		set_backref(self, fh, real_callback);
+		set_backref(self, fh, ofd, real_callback);
 		RETVAL = "0 but true";
 	OUTPUT:
 		RETVAL
@@ -284,7 +283,7 @@ modify(self, fh, events, callback)
 			else
 				die_sys("Couldn't modify filehandle from epoll set: %s");
 		}
-		set_backref(self, fh, real_callback);
+		set_backref(self, fh, ofd, real_callback);
 		RETVAL = "0 but true";
 	OUTPUT:
 		RETVAL
@@ -304,7 +303,7 @@ delete(self, fh)
 			else
 				die_sys("Couldn't delete filehandle from epoll set: %s");
 		}
-		del_backref(self, fh);
+		del_backref(self, ofd);
 		RETVAL = "0 but true";
 	OUTPUT:
 		RETVAL
