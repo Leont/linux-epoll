@@ -149,7 +149,7 @@ static void S_set_backref(pTHX_ SV* epoll, SV* fh, CV* callback) {
 	AV* backrefs = get_backrefs(epoll);
 	int fd = get_fd(fh);
 	struct data backref = { backrefs, fd };
-	SV* ref = sv_rvweaken(newSVsv(fh));
+	SV* ref = sv_rvweaken(SvROK(fh) ? newSVsv(fh) : newRV(fh));
 
 	av_store(backrefs, fd, ref);
 	sv_magicext(ref, (SV*)callback, PERL_MAGIC_ext, &weak_magic, (const char*)&backref, sizeof backref);
