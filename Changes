@@ -2,6 +2,7 @@ Revision history for Linux-Epoll
 
 {{$NEXT}}
           - Correctly handle non-reference file handles
+          - Allow tied handles to be added to the epoll
 
 0.012     2014-12-09 21:55:14+01:00 Europe/Amsterdam
           Keep callbacks alive during the entire loop
