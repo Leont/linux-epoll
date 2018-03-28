@@ -4,8 +4,7 @@ use warnings;
 use Module::Build;
 
 if ($^O ne 'linux') {
-	print "No support for OS\n";
-	exit 0;
+	die "No support for OS\n";
 }
 
 my $builder = Module::Build->new(
