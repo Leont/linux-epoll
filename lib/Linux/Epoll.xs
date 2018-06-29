@@ -183,7 +183,7 @@ static void S_del_backref(pTHX_ SV* epoll, int fd) {
 
 #define undef &PL_sv_undef
 
-static SV* S_io_fdopen(pTHX_ int fd) {
+static SV* S_io_fdopen(pTHX_ int fd, const char* package) {
 	PerlIO* pio = PerlIO_fdopen(fd, "r");
 	GV* gv = newGVgen("Linux::Epoll");
 	SV* ret = newRV_noinc((SV*)gv);
@@ -191,9 +191,10 @@ static SV* S_io_fdopen(pTHX_ int fd) {
 	IoTYPE(io) = '<';
 	IoIFP(io) = pio;
 	IoOFP(io) = pio;
+	sv_bless(ret, gv_stashpv(package, TRUE));
 	return ret;
 }
-#define io_fdopen(fd) S_io_fdopen(aTHX_ fd)
+#define io_fdopen(fd, package) S_io_fdopen(aTHX_ fd, package)
 
 static SV* S_event_bits_to_hash(pTHX_ UV bits) {
 	int shift;
@@ -218,7 +219,6 @@ new(package)
 	const char* package;
 	PREINIT:
 		int fd;
-		MAGIC* mg;
 	CODE: 
 #ifdef EPOLL_CLOEXEC
 		fd = epoll_create1(EPOLL_CLOEXEC);
@@ -227,9 +227,8 @@ new(package)
 #endif
 		if (fd < 0) 
 			die_sys("Couldn't open epollfd: %s");
-		RETVAL = io_fdopen(fd);
-		mg = sv_magicext(SvRV(RETVAL), sv_2mortal((SV*)newAV()), PERL_MAGIC_ext, &epoll_magic, NULL, 0);
-		sv_bless(RETVAL, gv_stashpv(package, TRUE));
+		RETVAL = io_fdopen(fd, package);
+		sv_magicext(SvRV(RETVAL), sv_2mortal((SV*)newAV()), PERL_MAGIC_ext, &epoll_magic, NULL, 0);
 	OUTPUT:
 		RETVAL
 
