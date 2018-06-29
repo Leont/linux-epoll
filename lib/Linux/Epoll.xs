@@ -81,16 +81,22 @@ typedef struct { const char* key; size_t keylen; uint32_t value; } entry;
 typedef entry map[];
 
 static map events = {
-	{ "in"     , 2, EPOLLIN      },
-	{ "out"    , 3, EPOLLOUT     },
-	{ "err"    , 3, EPOLLERR     },
-	{ "prio"   , 4, EPOLLPRI     },
-	{ "et"     , 2, EPOLLET      },
-	{ "hup"    , 3, EPOLLHUP     },
+	{ "in"       , 2, EPOLLIN        },
+	{ "out"      , 3, EPOLLOUT       },
+	{ "err"      , 3, EPOLLERR       },
+	{ "prio"     , 4, EPOLLPRI       },
+	{ "et"       , 2, EPOLLET        },
+	{ "hup"      , 3, EPOLLHUP       },
 #ifdef EPOLLRDHUP
-	{ "rdhup"  , 5, EPOLLRDHUP   },
+	{ "rdhup"    , 5, EPOLLRDHUP     },
 #endif
-	{ "oneshot", 7, EPOLLONESHOT }
+#ifdef EPOLLWAKEUP
+	{ "wakeup"   , 6, EPOLLWAKEUP    },
+#endif
+#ifdef EPOLLEXCLUSIVE
+	{ "exclusive", 9, EPOLLEXCLUSIVE },
+#endif
+	{ "oneshot"  , 7, EPOLLONESHOT   }
 };
 
 static uint32_t S_get_eventid(pTHX_ SV* event) {
