@@ -1,6 +1,8 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+
+0.014     2018-06-30 11:07:06+02:00 Europe/Amsterdam
           - Swallow exceptions in wait
           - Add wakeup and exclusive flags
 
