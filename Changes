@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          - Deal with global destruction more gracefully
 
 0.014     2018-06-30 11:07:06+02:00 Europe/Amsterdam
           - Swallow exceptions in wait
