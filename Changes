@@ -1,6 +1,8 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+
+0.016     2018-09-17 23:26:13+02:00 Europe/Amsterdam
           - Revert swallowing exceptions
           - Fix memory management regression
 
