@@ -51,6 +51,8 @@ There is urgent data available for reading.
 
 Set edge triggered behavior for the associated filehandle. The default behavior is level triggered. See you L<epoll(7)> documentation for more information on what this means.
 
+Take note that when using edge triggered events, exceptions out of the wait can easily cause events to be lost (when consuming to more than one event at a time).
+
 =item * hup
 
 A hang-up has happened on the associated filehandle. C<wait> will always wait on this event, it is not necessary to set this with C<add> or C<modify>.
