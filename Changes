@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+          - Eliminate superfluous SAVETMPS
 
 0.016     2018-09-17 23:26:13+02:00 Europe/Amsterdam
           - Revert swallowing exceptions
