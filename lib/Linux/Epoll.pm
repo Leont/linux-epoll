@@ -33,11 +33,11 @@ Epoll is a multiplexing mechanism that scales up O(1) with number of watched fil
 
 =item * in
 
-The associated filehandle is availible for reading.
+The associated filehandle is available for reading.
 
 =item * out
 
-The associated filehandle is availible for writing.
+The associated filehandle is available for writing.
 
 =item * err
 
