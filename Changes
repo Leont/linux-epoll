@@ -1,6 +1,7 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+         - Fix compiler warnings in XS code
 
 0.018     2021-01-25 22:59:36+01:00 Europe/Amsterdam
           - Explicitly run signal handlers right after EINTR
