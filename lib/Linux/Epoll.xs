@@ -219,9 +219,7 @@ static SV* S_event_bits_to_hash(pTHX_ UV bits) {
 
 MODULE = Linux::Epoll				PACKAGE = Linux::Epoll
 
-SV*
-new(package)
-	const char* package;
+SV* new(const char* package)
 	PREINIT:
 		int fd;
 	CODE: 
@@ -237,12 +235,7 @@ new(package)
 	OUTPUT:
 		RETVAL
 
-const char*
-add(self, fh, events, callback)
-	SV* self;
-	SV* fh;
-	SV* events;
-	SV* callback;
+const char* add(SV* self, SV* fh, SV* events, SV* callback)
 	PREINIT:
 		int efd, ofd;
 		struct epoll_event event;
@@ -264,12 +257,7 @@ add(self, fh, events, callback)
 	OUTPUT:
 		RETVAL
 
-const char*
-modify(self, fh, events, callback)
-	SV* self;
-	SV* fh;
-	SV* events;
-	SV* callback;
+const char* modify(SV* self, SV* fh, SV* events, SV* callback)
 	PREINIT:
 		int efd, ofd;
 		struct epoll_event event;
@@ -291,10 +279,7 @@ modify(self, fh, events, callback)
 	OUTPUT:
 		RETVAL
 
-const char*
-delete(self, fh)
-	SV* self;
-	SV* fh;
+const char* delete(SV* self, SV* fh)
 	PREINIT:
 		int efd, ofd;
 	CODE:
@@ -311,12 +296,7 @@ delete(self, fh)
 	OUTPUT:
 		RETVAL
 
-int
-wait(self, maxevents = 1, timeout = undef, sigset = undef)
-	SV* self;
-	ssize_t maxevents;
-	SV* timeout;
-	SV* sigset;
+int wait(SV* self, ssize_t maxevents = 1, SV* timeout = undef, SV* sigset = undef)
 	PREINIT:
 		int efd, i;
 		int real_timeout;
