@@ -13,7 +13,6 @@
 #include "perl.h"
 #include "XSUB.h"
 #define NEED_mg_findext
-#define NEED_sv_unmagicext
 #include "ppport.h"
 
 static int S_get_fd(pTHX_ SV* fh) {
@@ -160,8 +159,8 @@ static int weak_set(pTHX_ SV* sv, MAGIC* magic) {
 
 static int weak_free(pTHX_ SV* sv, MAGIC* magic);
 
-MGVTBL epoll_magic = { NULL };
-MGVTBL weak_magic = { NULL, weak_set, NULL, NULL, weak_free };
+static const MGVTBL epoll_magic = { NULL };
+static const MGVTBL weak_magic = { NULL, weak_set, NULL, NULL, weak_free };
 
 static int weak_free(pTHX_ SV* sv, MAGIC* magic) {
 	struct data* data = (struct data*)magic->mg_ptr;
@@ -174,7 +173,7 @@ static int weak_free(pTHX_ SV* sv, MAGIC* magic) {
 static void S_set_backref(pTHX_ SV* epoll, SV* fh, int fd, CV* callback) {
 	AV* backrefs = get_backrefs(epoll);
 	struct data backref = { backrefs, fd };
-	SV* ref = sv_rvweaken(SvROK(fh) ? newSVsv(fh) : newRV(fh));
+	SV* ref = sv_rvweaken(SvROK(fh) ? newSVsv(fh) : newRV_inc(fh));
 
 	av_store(backrefs, fd, ref);
 	sv_magicext(ref, (SV*)callback, PERL_MAGIC_ext, &weak_magic, (const char*)&backref, sizeof backref);
