@@ -1,6 +1,8 @@
 Revision history for Linux-Epoll
 
 {{$NEXT}}
+
+0.020     2026-11-16 19:12:46+01:00 Europe/Brussels
           - Don't leave freed globs in stash
           - When subclassing create the glob in the subclass
           - Use Signal typemap
