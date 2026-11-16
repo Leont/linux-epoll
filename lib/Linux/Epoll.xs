@@ -59,21 +59,6 @@ static void S_die_sys(pTHX_ const char* format) {
 }
 #define die_sys(format) S_die_sys(aTHX_ format)
 
-static sigset_t* S_sv_to_sigset(pTHX_ SV* sigmask, const char* name) {
-	IV tmp;
-	if (!SvOK(sigmask))
-		return NULL;
-	if (!SvROK(sigmask) || !sv_derived_from(sigmask, "POSIX::SigSet"))
-		Perl_croak(aTHX_ "Value is not of type POSIX::SigSet");
-#if PERL_VERSION > 15 || PERL_VERSION == 15 && PERL_SUBVERSION > 2
-	return (sigset_t *) SvPV_nolen(SvRV(sigmask));
-#else
-	tmp = SvIV((SV*)SvRV(sigmask));
-	return INT2PTR(sigset_t*, tmp);
-#endif
-}
-#define sv_to_sigset(sigmask, name) S_sv_to_sigset(aTHX_ sigmask, name)
-
 typedef struct { const char* key; size_t keylen; uint32_t value; } entry;
 typedef entry map[];
 
@@ -296,7 +281,7 @@ const char* delete(SV* self, SV* fh)
 	OUTPUT:
 		RETVAL
 
-int wait(SV* self, ssize_t maxevents = 1, SV* timeout = undef, SV* sigset = undef)
+int wait(SV* self, ssize_t maxevents = 1, SV* timeout = undef, sigset_t* sigset = NULL)
 	PREINIT:
 		int efd, i;
 		int real_timeout;
@@ -307,10 +292,9 @@ int wait(SV* self, ssize_t maxevents = 1, SV* timeout = undef, SV* sigset = unde
 			Perl_croak(aTHX_ "Can't wait for a non-positive number of events (maxevents = %ld)", maxevents);
 		efd = get_fd(self);
 		real_timeout = SvOK(timeout) ? (int)ceil(SvNV(timeout) * 1000) : -1;
-		real_sigset = SvOK(sigset) ? sv_to_sigset(sigset, "epoll_pwait") : NULL;
 
 		events = alloca(sizeof(struct epoll_event) * maxevents);
-		RETVAL = epoll_pwait(efd, events, maxevents, real_timeout, real_sigset);
+		RETVAL = epoll_pwait(efd, events, maxevents, real_timeout, sigset);
 		if (RETVAL == -1) {
 			if (errno != EINTR)
 				die_sys("Couldn't wait on epollfd: %s");
