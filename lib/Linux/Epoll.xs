@@ -191,7 +191,8 @@ static void S_del_backref(pTHX_ SV* epoll, int fd) {
 static SV* S_io_fdopen(pTHX_ int fd, const char* package) {
 	PerlIO* pio = PerlIO_fdopen(fd, "r");
 	GV* gv = newGVgen("Linux::Epoll");
-	SV* ret = newRV_noinc((SV*)gv);
+	SV* ret = newRV_inc((SV*)gv);
+	hv_delete(GvSTASH(gv), GvNAME(gv), GvNAMELEN(gv), G_DISCARD);
 	IO* io = GvIOn(gv);
 	IoTYPE(io) = '<';
 	IoIFP(io) = pio;

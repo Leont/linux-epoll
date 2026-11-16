@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 19;
+use Test::More tests => 20;
 use Linux::Epoll;
 
 use Socket qw/AF_UNIX SOCK_STREAM PF_UNSPEC/;
@@ -61,3 +61,5 @@ weaken $sub3;
 undef $out;
 ok !defined $sub3, '$sub3 is no longer defined';
 
+my @gen_globs = grep { /^_GEN_\d+$/ } keys %Linux::Epoll::;
+is_deeply \@gen_globs, [], 'Epoll leaves nothing in the stash';
