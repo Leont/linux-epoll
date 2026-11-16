@@ -149,7 +149,7 @@ static const MGVTBL weak_magic = { NULL, weak_set, NULL, NULL, weak_free };
 
 static int weak_free(pTHX_ SV* sv, MAGIC* magic) {
 	struct data* data = (struct data*)magic->mg_ptr;
-	mg_findext(sv, PERL_MAGIC_ext, &weak_magic)->mg_virtual = NULL; /* Cover perl bugs under the carpet */
+	SvREFCNT_dec((SV*)data->backrefs);
 	return 0;
 }
 
@@ -161,6 +161,7 @@ static void S_set_backref(pTHX_ SV* epoll, SV* fh, int fd, CV* callback) {
 	SV* ref = sv_rvweaken(SvROK(fh) ? newSVsv(fh) : newRV_inc(fh));
 
 	av_store(backrefs, fd, ref);
+	SvREFCNT_inc((SV*)backrefs);
 	sv_magicext(ref, (SV*)callback, PERL_MAGIC_ext, &weak_magic, (const char*)&backref, sizeof backref);
 }
 #define set_backref(epoll, fh, fd, cb) S_set_backref(aTHX_ epoll, fh, fd, cb)
